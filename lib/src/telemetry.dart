@@ -44,11 +44,11 @@ class Telemetry {
       name,
       {
         'startTime': spanInfo.startTime,
-        if (isStop)...{
+        if (isStop) 
           'stopTime': spanInfo.stopTime ?? '',
-          'duration': '${DateTime.parse(spanInfo.stopTime!).difference(DateTime.parse(spanInfo.startTime)).inMilliseconds}',
+          'duration': '${DateTime.parse(spanInfo.stopTime!)
+              .difference(DateTime.parse(spanInfo.startTime)).inMilliseconds}',
           'status': '$status',
-        }
       }
     );
   }
