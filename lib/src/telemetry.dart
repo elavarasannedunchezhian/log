@@ -1,8 +1,14 @@
-import 'dart:async';
+// ignore_for_file: deprecated_member_use
 
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
-import 'package:logging/logging.dart';
-import 'package:logging_appenders/logging_appenders.dart';
+import 'package:log/src/metric_appender.dart';
+import 'package:logger/logger.dart' as logger_pkg;
+import 'package:logging/logging.dart' as logging_pkg;
+import 'package:logging_appenders/base_remote_appender.dart';
 
 class Telemetry {
   static Timer? timer;
@@ -16,6 +22,16 @@ class Telemetry {
   static String? storeName;
   static String? terminalCode;
   static String? username;
+  static bool consoleMetrics = false;
+
+  static var logger = logger_pkg.Logger(
+    printer: logger_pkg.PrettyPrinter(
+      printEmojis: true,
+      colors: true,
+      printTime: true,
+      methodCount: 0,
+    )
+  );
 
   static Future<void> sendMetricEvent(
     String name, 
@@ -23,7 +39,7 @@ class Telemetry {
     {bool isStop = false, 
     String? status,
   }) async {
-    final lokiAppender = LokiApiAppender(
+    final metricAppender = MetricAppender(
       server: '172.208.58.149:3100',
       username: 'admin',
       password: 'admin',
@@ -39,21 +55,54 @@ class Telemetry {
     );
 
     try {
-      await lokiAppender.log(
-        Level.FINE,
-        DateTime.now(),
-        name,
-        {
-          'startTime': spanInfo.startTime,
-          if (isStop) 
-            'stopTime': spanInfo.stopTime ?? '',
-            'duration': '${DateTime.parse(spanInfo.stopTime!)
-                .difference(DateTime.parse(spanInfo.startTime)).inMilliseconds}',
-            'status': '$status',
-        }
+      final startTime = spanInfo.startTime;
+      final stopTime = spanInfo.stopTime;
+
+      final logPayload = <String, dynamic>{
+        'type': 'start_span',
+        'event': name,
+        'startTime': startTime,
+      };
+
+      if (isStop && stopTime != null ) {
+        logPayload.addAll({
+          'type': 'stop_span',
+          'stopTime': stopTime,
+          'duration': DateTime.parse(stopTime)
+              .difference(DateTime.parse(startTime))
+              .inMilliseconds,
+          'status': status ?? 'Unknown',
+        });
+      }
+
+      final logEntry = LogEntry(
+        logLevel: logging_pkg.Level.FINE, 
+        ts: DateTime.now(), 
+        line: jsonEncode(logPayload), 
+        lineLabels: {}
       );
+
+      await metricAppender.sendMeticEventsWithDio([logEntry], {}, CancelToken());
+      if (consoleMetrics) {
+        metricToConsole(logPayload);
+      }
     } catch (e) {
-      print('Error occurred while sending metric event: $e');
+      logger.e('Error occurred while sending metric event: $e');
+    }
+  }
+
+  static void metricToConsole(Map<String, dynamic> logPayload) {
+    final type = logPayload['type'];
+    final event = logPayload['event'];
+    final duration = logPayload['duration'];
+    final status = logPayload['status'];
+
+    if (type == 'start_span') {
+      logger.f('Start Span: $event');
+    } else if (type == 'stop_span') {
+      logger.f('Stop Span: $event, Duration: ${duration ?? 'N/A'} ms, Status: ${status ?? 'N/A'}');
+    } else {
+      logger.t('Unknown Event: $event');
     }
   }
 
@@ -64,7 +113,7 @@ class Telemetry {
       spanTree[spanName] = spanInfo;
       await Telemetry.sendMetricEvent(spanName, spanInfo);
     } else {
-      return print('SpanName cannot be empty');
+      return logger.e('SpanName cannot be empty');
     }
     
   }
@@ -77,7 +126,7 @@ class Telemetry {
       await Telemetry.sendMetricEvent(spanName, spanInfo, isStop: true, status: status);
       spanTree.remove(spanName);
     } else {
-      return print('spanName cannot be empty');
+      return logger.e('spanName cannot be empty');
     }
 
   }
