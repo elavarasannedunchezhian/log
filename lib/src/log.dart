@@ -57,64 +57,37 @@ class Log {
         },
       );
 
-      if (consoleLogs) {
-        logToConsole(logLevel, name, stackTrace: stackTrace, error: error);
-      }
     } catch (e) {
       logger.e('Error occurred while sending log event: $e');
     }
   }
 
-  static void logToConsole(
-    logging_pkg.Level logLevel,
-    String message, {
-    StackTrace? stackTrace,
-    bool error = false,
-  }) {
+  static Future<void> info(String name) async {
+    Log.sendLogEvent(logging_pkg.Level.INFO, name);
+    if (consoleLogs) {
+      logger.i(name);
+    }
+  } 
 
-    final callerInfo = getCallerInfo();
-
-    final formattedMessage = '''
-      $logLevel: $message
-      Location: $callerInfo
-    ''';
-
-    switch (logLevel) {
-      case logging_pkg.Level.INFO:
-        logger.i(formattedMessage);
-        break;
-      case logging_pkg.Level.WARNING:
-        logger.w(formattedMessage);
-        break;
-      case logging_pkg.Level.SEVERE:
-        logger.e(formattedMessage, error: stackTrace);
-        break;
-      case logging_pkg.Level.CONFIG:
-        logger.d(formattedMessage);
-        break;
-      default:
-        logger.t(formattedMessage);
+  static Future<void> error(String name, StackTrace stackTrace) async {
+    Log.sendLogEvent(logging_pkg.Level.SEVERE, 'Error occurred: $name', stackTrace: stackTrace, error: true);
+    if (consoleLogs) {
+      logger.e('Error occurred: $name', error: stackTrace);
     }
   }
 
-  static String getCallerInfo() {
-    final trace = StackTrace.current.toString().split('\n');
-    // Ignore the first few lines, which are the `Log` class methods.
-    for (var line in trace.skip(2)) {
-      if (line.contains('package:')) {
-        // Extract the project-related information.
-        final match = RegExp(r'package:[^:]+/(.*)').firstMatch(line);
-        if (match != null) {
-          return match.group(1) ?? 'Unknown Location';
-        }
-      }
+  static Future<void> debug(String name) async {
+    Log.sendLogEvent(logging_pkg.Level.CONFIG, name);
+    if (consoleLogs) {
+      logger.d(name);
     }
-    return 'Unknown Location';
+  } 
+
+  static Future<void> warning(String name) async {
+    Log.sendLogEvent(logging_pkg.Level.WARNING, name);
+    if (consoleLogs) {
+      logger.w(name);
+    }
   }
 
-  static Future<void> info(String name) async => Log.sendLogEvent(logging_pkg.Level.INFO, name);
-  static Future<void> error(String name, StackTrace stackTrace) async =>
-      Log.sendLogEvent(logging_pkg.Level.SEVERE, 'Error occurred: $name', stackTrace: stackTrace, error: true);
-  static Future<void> debug(String name) async => Log.sendLogEvent(logging_pkg.Level.CONFIG, name);
-  static Future<void> warning(String name) async => Log.sendLogEvent(logging_pkg.Level.WARNING, name);
 }
