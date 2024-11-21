@@ -38,19 +38,23 @@ class Telemetry {
       },
     );
 
-    lokiAppender.log(
-      Level.FINE,
-      DateTime.now(),
-      name,
-      {
-        'startTime': spanInfo.startTime,
-        if (isStop) 
-          'stopTime': spanInfo.stopTime ?? '',
-          'duration': '${DateTime.parse(spanInfo.stopTime!)
-              .difference(DateTime.parse(spanInfo.startTime)).inMilliseconds}',
-          'status': '$status',
-      }
-    );
+    try {
+      await lokiAppender.log(
+        Level.FINE,
+        DateTime.now(),
+        name,
+        {
+          'startTime': spanInfo.startTime,
+          if (isStop) 
+            'stopTime': spanInfo.stopTime ?? '',
+            'duration': '${DateTime.parse(spanInfo.stopTime!)
+                .difference(DateTime.parse(spanInfo.startTime)).inMilliseconds}',
+            'status': '$status',
+        }
+      );
+    } catch (e) {
+      print('Error occurred while sending metric event: $e');
+    }
   }
 
    static Future<void> startSpan(String spanName) async {
