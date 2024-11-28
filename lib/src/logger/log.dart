@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:log/src/logger/rotate_logs.dart';
+import 'package:log/src/telemetry/metric.dart';
 import 'package:logging/logging.dart';
 import 'package:logging_appenders/base_remote_appender.dart';
 import 'package:logging_appenders/logging_appenders.dart';
@@ -26,6 +27,7 @@ class Log {
   static bool consoleLog = false;
 
   static Future<void> initFile() async {
+    Metric.initFile();
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((record) {
       if (consoleLog) print('${record.level.name}: ${record.time.toUtc()}: ${record.message}');
