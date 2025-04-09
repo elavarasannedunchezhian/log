@@ -1,6 +1,6 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -9,7 +9,6 @@ import 'package:log/src/telemetry/metric.dart';
 import 'package:logging/logging.dart';
 import 'package:logging_appenders/base_remote_appender.dart';
 import 'package:logging_appenders/logging_appenders.dart';
-import 'package:path_provider/path_provider.dart';
 
 class Log { 
   static late LokiApiAppender lokiAppender;
@@ -20,19 +19,53 @@ class Log {
   static String? platform;
   static String? systemName;
   static String? baseUrl;
-  static String? storeId;
+  static String? storeCode;
   static String? storeName;
   static String? terminalCode;
   static String? username;
   static bool consoleLog = false;
 
-  static Future<void> initFile() async {
-    Metric.initFile();
+  static Future<void> initFile({
+    required Directory directory,
+    required String server,
+    required String username,
+    required String password,
+    required String appName,
+    String? platform,
+    String? systemName,
+    String? baseUrl,
+    String? loggedInUser,
+    String? storeCode,
+    String? storeName,
+    String? terminalCode,
+  }) async {
+    await Metric.initFile(
+      directory: directory,
+      server: server,
+      username: username,
+      password: password,
+      appName: appName,
+      platform: platform,
+      systemName: systemName,
+      baseUrl: baseUrl,
+      storeCode: storeCode,
+      storeName: storeName,
+      terminalCode: terminalCode,
+    );
+    Log.appName = appName;
+    Log.platform = platform;
+    Log.systemName = systemName;
+    Log.baseUrl = baseUrl;
+    Log.storeCode = storeCode;
+    Log.storeName = storeName;    
+    Log.terminalCode = terminalCode;
+    Log.username = loggedInUser;
+
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((record) {
-      if (consoleLog) print('${record.level.name}: ${record.time.toUtc()}: ${record.message}');
+      if (consoleLog) log('${record.level.name}: ${record.time.toUtc()}: ${record.message}');
     });
-    final dir = await getApplicationSupportDirectory();
+    final dir = directory;
     final dirPath = '${dir.path}/logs';
     final logDir = Directory(dirPath);
     if (!await logDir.exists()) {
@@ -47,15 +80,15 @@ class Log {
     );
 
     lokiAppender = LokiApiAppender(
-      server: '172.208.58.149:3100',
-      username: 'admin',
-      password: 'admin',
+      server: server,
+      username: username,
+      password: password,
       labels: {
-        'app': appName ?? '',
+        'app': appName,
         'system': systemName ?? '',
         'terminal': terminalCode ?? '',
-        'username': username  ?? '',
-        'storeId': storeId ?? '',
+        'username': loggedInUser  ?? '',
+        'storeCode': storeCode ?? '',
         'storeName': storeName ?? '',
         'platform': platform ?? '',
       },
@@ -76,24 +109,35 @@ class Log {
         logLevel: logLevel,
         line: '$name ${error ? ' - stackTrace: $stackTrace' : ''}',
         lineLabels: {
-          'app': appName!,
+          'app': appName ?? '',
         },
       );
 
       await lokiAppender.sendLogEventsWithDio([logEntry], {}, CancelToken());
     } catch (e) {
-      print('Error occurred while sending log event: $e');
+      log('Error occurred while sending log event: $e');
+      final logPayload = <String, dynamic>{
+        'name': name,
+        'labels': {
+          if (appName?.isNotEmpty ?? false) 'app': appName ?? '',
+          if (systemName?.isNotEmpty ?? false) 'system': systemName ?? '',
+          if (terminalCode?.isNotEmpty ?? false)'terminal': terminalCode ?? '',
+          if (username?.isNotEmpty ?? false) 'username': username  ?? '',
+          if (storeCode?.isNotEmpty ?? false) 'storeCode': storeCode ?? '',
+          if (storeName?.isNotEmpty ?? false) 'storeName': storeName ?? '',
+          if (platform?.isNotEmpty ?? false) 'platform': platform ?? '',
+        }
+      };
       final logRecord = LogRecord(
         logLevel, 
-        name, 
-        appName!, 
-        error, 
+        jsonEncode(logPayload), 
+        appName ?? '',
         stackTrace,
       );
       fileAppender.handle(logRecord);
-      RotateLogs.startTimer();
-      print('timer started');
-      print('Logs sent to local file');
+      //RotateLogs.startTimer();
+      //log('timer started');
+      log('Logs sent to local file');
     }
   }
 

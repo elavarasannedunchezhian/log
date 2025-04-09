@@ -1,6 +1,5 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -61,7 +60,7 @@ class RotateLogs {
                 stackTrace = buffer.toString().trim();
                 i = j - 1; // Skip the processed stack trace line
               }
-              print('Stack trace: $stackTrace');
+              log('Stack trace: $stackTrace');
 
               logEntries.add(LogEntry(
                 ts: parsedLog['time'],
@@ -76,7 +75,7 @@ class RotateLogs {
             }
           } catch (e) {
             logsRemaining = true; // Ensure retry for failed parsing
-            print('Error processing log line: $e');
+            log('Error processing log line: $e');
           }
         }
 
@@ -89,13 +88,13 @@ class RotateLogs {
           }
         }
       } else {
-        print('No log file found: ${logFile.path}');
+        log('No log file found: ${logFile.path}');
       }
     }
 
     if (!logsRemaining && logEntries.isEmpty) {
       stopTimer();
-      print('All logs processed. Stopping retry timer.');
+      log('All logs processed. Stopping retry timer.');
     }
   }
 
@@ -125,7 +124,7 @@ class RotateLogs {
         };
       }
     } catch (e) {
-      print('Failed to parse log line: $logLine\nError: $e');
+      log('Failed to parse log line: $logLine\nError: $e');
     }
     return null;
   }
@@ -137,7 +136,7 @@ class RotateLogs {
       logEntries.clear();
       return true;
     } catch (e) {
-      print('Error occurred while sending logs to loki: $e');
+      log('Error occurred while sending logs to loki: $e');
       return false;
     }
   }
@@ -147,9 +146,9 @@ class RotateLogs {
     try {
       closeFile();
       await File(filePath.path).delete();
-      print('File deleted successfully: ${filePath.path}');
+      log('File deleted successfully: ${filePath.path}');
     } catch (e) {
-      print('Error occurred while deleting file: $e');
+      log('Error occurred while deleting file: $e');
     }
   }
 

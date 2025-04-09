@@ -1,38 +1,41 @@
-// ignore_for_file: deprecated_member_use, avoid_print
-
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:log/log.dart';
 import 'package:log/src/telemetry/metric_appender.dart';
 import 'package:log/src/telemetry/rotate_metrics.dart';
 import 'package:logging/logging.dart';
 import 'package:logging_appenders/base_remote_appender.dart';
 import 'package:logging_appenders/logging_appenders.dart';
-import 'package:path_provider/path_provider.dart';
 
 class Metric {
   static late MetricAppender metricAppender;
   static late RotatingFileAppender fileAppender;
   static final Map<String, SpanInfo> spanTree = {};
   static Timer? timer;
-  static String? appName;
-  static String? platform;
-  static String? systemName;
-  static String? baseUrl;
-  static String? storeId;
-  static String? storeName;
-  static String? terminalCode;
-  static String? username;
   static bool consoleMetric = false;
 
-  static Future<void> initFile() async {
+  static Future<void> initFile({
+    required Directory directory,
+    required String server,
+    required String username,
+    required String password,
+    required String appName,
+    String? platform,
+    String? systemName,
+    String? baseUrl,
+    String? storeCode,
+    String? storeName,
+    String? terminalCode,
+  }) async {
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((record) {
-      if (consoleMetric) print('${record.level.name}: ${record.time.toUtc()} ${record.message}');
+      if (consoleMetric) log('${record.level.name}: ${record.time.toUtc()} ${record.message}');
     });
-    final dir = await getApplicationSupportDirectory();
+    final dir = directory;
     final dirPath = '${dir.path}/metrics';
     final metricDir = Directory(dirPath);
     if (!await metricDir.exists()) {
@@ -51,13 +54,13 @@ class Metric {
       username: 'admin',
       password: 'admin',
       labels: {
-        'app': appName ?? '',
-        'system': systemName ?? '',
-        'terminal': terminalCode ?? '',
-        'username': username  ?? '',
-        'storeId': storeId ?? '',
-        'storeName': storeName ?? '',
-        'platform': platform ?? '',
+        'app': Log.appName ?? '',
+        'system': Log.systemName ?? '',
+        'terminal': Log.terminalCode ?? '',
+        'username': Log.username  ?? '',
+        'storeCode': Log.storeCode ?? '',
+        'storeName': Log.storeName ?? '',
+        'platform': Log.platform ?? '',
       },
     );
   }
@@ -110,34 +113,45 @@ class Metric {
         ts: DateTime.now().toUtc(), 
         line: jsonEncode(metricPayload), 
         lineLabels: {
-          'app': appName!,
+          'app': Log.appName ?? '',
         }
       );
 
       await metricAppender.sendMeticEventsWithDio([logEntry], {}, CancelToken());
-      print('Metrics sent to loki');
+      log('Metrics sent to loki');
     } catch (e) {
-      print('Error occurred while sending metric event: $e');
+      log('Error occurred while sending metric event: $e');
+      metricPayload.addAll({
+        'labels': {
+          if (Log.appName?.isNotEmpty ?? false) 'app': Log.appName ?? '',
+          if (Log.systemName?.isNotEmpty ?? false) 'system': Log.systemName ?? '',
+          if (Log.terminalCode?.isNotEmpty ?? false)'terminal': Log.terminalCode ?? '',
+          if (Log.username?.isNotEmpty ?? false) 'username': Log.username  ?? '',
+          if (Log.storeCode?.isNotEmpty ?? false) 'storeCode': Log.storeCode ?? '',
+          if (Log.storeName?.isNotEmpty ?? false) 'storeName': Log.storeName ?? '',
+          if (Log.platform?.isNotEmpty ?? false) 'platform': Log.platform ?? '',
+        }
+      });
       final logRecord = LogRecord(
         Level.FINE, 
         jsonEncode(metricPayload), 
-        appName!,
+        Log.appName ?? '',
       );
       fileAppender.handle(logRecord);
-      RotateMetrics.startTimer();
-      print('timer started');
-      print('Metrics sent to local file');
+      //RotateMetrics.startTimer();
+      //log('timer started');
+      log('Metrics sent to local file');
     }
     metricPayload.clear();
   }
 
   static Future<void> startSpan(String spanName) async {
     if (spanName.isEmpty) {
-      return print('SpanName connot be empty');
+      return log('SpanName connot be empty');
     }
-    if (spanTree.containsKey(spanName)) {
-      return print('Span with name $spanName already exist');
-    }
+    /*if (spanTree.containsKey(spanName)) {
+      return log('Span with name $spanName already exist');
+    }*/
     final startTime = DateTime.now().toUtc();
     final spanInfo = SpanInfo(startTime: startTime);
     spanTree[spanName] = spanInfo;
@@ -146,12 +160,12 @@ class Metric {
 
   static Future<void> stopSpan(String spanName, String status) async {
     if (spanTree.isEmpty) {
-      return print('No spans to stop');
+      return log('No spans to stop');
     }
 
     final spanInfo = spanTree[spanName];
     if (spanInfo == null) {
-      return print('Span with name $spanName does not exist');
+      return log('Span with name $spanName does not exist');
     }
     
     final stopTime = DateTime.now().toUtc();

@@ -1,6 +1,5 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -61,7 +60,7 @@ class RotateMetrics {
             }
           } catch (e) {
             metricsRemaining = true; // Ensure retry for failed parsing
-            print('Error processing metric line: $e');
+            log('Error processing metric line: $e');
           }
         }
 
@@ -74,13 +73,13 @@ class RotateMetrics {
           }
         }
       } else {
-        print('No metric file found: ${metricFile.path}');
+        log('No metric file found: ${metricFile.path}');
       }
     }
 
     if (!metricsRemaining && metricEntries.isEmpty) {
       stopTimer();
-      print('All metrics processed. Stopping retry timer.');
+      log('All metrics processed. Stopping retry timer.');
     }
   }
 
@@ -109,7 +108,7 @@ class RotateMetrics {
         };
       }
     } catch (e) {
-      print('Error parsing metric line: $metricLine\nError: $e');
+      log('Error parsing metric line: $metricLine\nError: $e');
     }
     return null;
   }
@@ -121,7 +120,7 @@ class RotateMetrics {
       metricEntries.clear();
       return true;
     } catch (e) {
-      print('Error occurred while sending metrics to loki: $e');
+      log('Error occurred while sending metrics to loki: $e');
       return false;
     }
   }
@@ -131,9 +130,9 @@ class RotateMetrics {
     try {
       closeFile();
       await File(filePath.path).delete();
-      print('File deleted successfully: ${filePath.path}');
+      log('File deleted successfully: ${filePath.path}');
     } catch (e) {
-      print('Error occurred while deleting file: $e');
+      log('Error occurred while deleting file: $e');
     }
   }
 
