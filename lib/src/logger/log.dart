@@ -117,7 +117,6 @@ class Log {
     } catch (e) {
       log('Error occurred while sending log event: $e');
       final logPayload = <String, dynamic>{
-        'name': name,
         'labels': {
           if (appName?.isNotEmpty ?? false) 'app': appName ?? '',
           if (systemName?.isNotEmpty ?? false) 'system': systemName ?? '',
@@ -130,8 +129,8 @@ class Log {
       };
       final logRecord = LogRecord(
         logLevel, 
-        jsonEncode(logPayload), 
-        appName ?? '',
+        name,
+        jsonEncode(logPayload),
         stackTrace,
       );
       fileAppender.handle(logRecord);
@@ -158,8 +157,8 @@ class Log {
   }
 
   static Future<void> debug(String name) async {
-    Log.sendLogEvent(Level.CONFIG, name, DateTime.now().toUtc());
-    logger.config(name);
+    Log.sendLogEvent(Level.FINER, name, DateTime.now().toUtc());
+    logger.finer(name);
   }
 
   static Future<void> warning(String name) async {

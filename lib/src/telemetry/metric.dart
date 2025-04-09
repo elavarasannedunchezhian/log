@@ -121,7 +121,7 @@ class Metric {
       log('Metrics sent to loki');
     } catch (e) {
       log('Error occurred while sending metric event: $e');
-      metricPayload.addAll({
+      final labelPayload = {
         'labels': {
           if (Log.appName?.isNotEmpty ?? false) 'app': Log.appName ?? '',
           if (Log.systemName?.isNotEmpty ?? false) 'system': Log.systemName ?? '',
@@ -131,11 +131,11 @@ class Metric {
           if (Log.storeName?.isNotEmpty ?? false) 'storeName': Log.storeName ?? '',
           if (Log.platform?.isNotEmpty ?? false) 'platform': Log.platform ?? '',
         }
-      });
+      };
       final logRecord = LogRecord(
         Level.FINE, 
         jsonEncode(metricPayload), 
-        Log.appName ?? '',
+        jsonEncode(labelPayload),
       );
       fileAppender.handle(logRecord);
       //RotateMetrics.startTimer();
