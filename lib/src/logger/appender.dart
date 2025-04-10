@@ -10,7 +10,7 @@ import 'package:logging/logging.dart';
 import 'package:logging_appenders/base_remote_appender.dart';
 import 'package:logging_appenders/logging_appenders.dart';
 
-class Log { 
+class Appender { 
   static late LokiApiAppender lokiAppender;
   static late RotatingFileAppender fileAppender;
   static final logger = Logger('Log');
@@ -52,14 +52,14 @@ class Log {
       storeName: storeName,
       terminalCode: terminalCode,
     );
-    Log.appName = appName;
-    Log.platform = platform;
-    Log.systemName = systemName;
-    Log.baseUrl = baseUrl;
-    Log.storeCode = storeCode;
-    Log.storeName = storeName;    
-    Log.terminalCode = terminalCode;
-    Log.username = loggedInUser;
+    Appender.appName = appName;
+    Appender.platform = platform;
+    Appender.systemName = systemName;
+    Appender.baseUrl = baseUrl;
+    Appender.storeCode = storeCode;
+    Appender.storeName = storeName;    
+    Appender.terminalCode = terminalCode;
+    Appender.username = loggedInUser;
 
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((record) {
@@ -140,29 +140,29 @@ class Log {
     }
   }
 
-  static Future<void> info(String name) async {
-    Log.sendLogEvent(Level.INFO, name, DateTime.now().toUtc());
-    logger.info(name);
+  static Future<void> info(String message) async {
+    Appender.sendLogEvent(Level.INFO, message, DateTime.now().toUtc());
+    logger.info(message);
   }
 
-  static Future<void> error(String name, StackTrace stackTrace) async {
-    Log.sendLogEvent(
+  static Future<void> error(String message, StackTrace stackTrace) async {
+    Appender.sendLogEvent(
       Level.SEVERE, 
-      'Error occurred: $name', 
+      'Error occurred: $message', 
       DateTime.now().toUtc(),
       stackTrace: stackTrace, 
       error: true,
     );
-    logger.severe(name, stackTrace);
+    logger.severe(message, stackTrace);
   }
 
-  static Future<void> debug(String name) async {
-    Log.sendLogEvent(Level.FINER, name, DateTime.now().toUtc());
-    logger.finer(name);
+  static Future<void> debug(String message) async {
+    Appender.sendLogEvent(Level.FINER, message, DateTime.now().toUtc());
+    logger.finer(message);
   }
 
-  static Future<void> warning(String name) async {
-    Log.sendLogEvent(Level.WARNING, name, DateTime.now().toUtc());
-    logger.warning(name);
+  static Future<void> warning(String message) async {
+    Appender.sendLogEvent(Level.WARNING, message, DateTime.now().toUtc());
+    logger.warning(message);
   }
 }

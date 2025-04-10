@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:log/src/logger/log.dart';
+import 'package:log/src/logger/appender.dart';
 import 'package:logging/logging.dart';
 import 'package:logging_appenders/base_remote_appender.dart';
 
@@ -33,7 +33,7 @@ class RotateLogs {
 
   // Retrieve all logs and send them to Loki.
   static Future<void> retrieveLogs() async {
-    final logFiles = Log.fileAppender.getAllLogFiles();
+    final logFiles = Appender.fileAppender.getAllLogFiles();
     bool logsRemaining = false;
 
     for (final logFile in logFiles) {
@@ -132,7 +132,7 @@ class RotateLogs {
   // send a list of log entries to loki
   static Future<bool> sendLogBackToLoki(List<LogEntry> logEntries) async {
     try {
-      await Log.lokiAppender.sendLogEventsWithDio(logEntries, {}, CancelToken());
+      await Appender.lokiAppender.sendLogEventsWithDio(logEntries, {}, CancelToken());
       logEntries.clear();
       return true;
     } catch (e) {

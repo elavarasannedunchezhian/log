@@ -1,4 +1,4 @@
 library log;
 
-export 'src/logger/log.dart';
-export 'src/telemetry/metric.dart';
+export 'src/logger/logger.dart';
+export 'src/telemetry/span.dart';

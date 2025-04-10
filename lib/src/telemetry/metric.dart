@@ -4,7 +4,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:log/log.dart';
+import 'package:log/src/logger/appender.dart';
 import 'package:log/src/telemetry/metric_appender.dart';
 import 'package:log/src/telemetry/rotate_metrics.dart';
 import 'package:logging/logging.dart';
@@ -54,13 +54,13 @@ class Metric {
       username: 'admin',
       password: 'admin',
       labels: {
-        'app': Log.appName ?? '',
-        'system': Log.systemName ?? '',
-        'terminal': Log.terminalCode ?? '',
-        'username': Log.username  ?? '',
-        'storeCode': Log.storeCode ?? '',
-        'storeName': Log.storeName ?? '',
-        'platform': Log.platform ?? '',
+        'app': Appender.appName ?? '',
+        'system': Appender.systemName ?? '',
+        'terminal': Appender.terminalCode ?? '',
+        'username': Appender.username  ?? '',
+        'storeCode': Appender.storeCode ?? '',
+        'storeName': Appender.storeName ?? '',
+        'platform': Appender.platform ?? '',
       },
     );
   }
@@ -113,7 +113,7 @@ class Metric {
         ts: DateTime.now().toUtc(), 
         line: jsonEncode(metricPayload), 
         lineLabels: {
-          'app': Log.appName ?? '',
+          'app': Appender.appName ?? '',
         }
       );
 
@@ -123,13 +123,13 @@ class Metric {
       log('Error occurred while sending metric event: $e');
       final labelPayload = {
         'labels': {
-          if (Log.appName?.isNotEmpty ?? false) 'app': Log.appName ?? '',
-          if (Log.systemName?.isNotEmpty ?? false) 'system': Log.systemName ?? '',
-          if (Log.terminalCode?.isNotEmpty ?? false)'terminal': Log.terminalCode ?? '',
-          if (Log.username?.isNotEmpty ?? false) 'username': Log.username  ?? '',
-          if (Log.storeCode?.isNotEmpty ?? false) 'storeCode': Log.storeCode ?? '',
-          if (Log.storeName?.isNotEmpty ?? false) 'storeName': Log.storeName ?? '',
-          if (Log.platform?.isNotEmpty ?? false) 'platform': Log.platform ?? '',
+          if (Appender.appName?.isNotEmpty ?? false) 'app': Appender.appName ?? '',
+          if (Appender.systemName?.isNotEmpty ?? false) 'system': Appender.systemName ?? '',
+          if (Appender.terminalCode?.isNotEmpty ?? false)'terminal': Appender.terminalCode ?? '',
+          if (Appender.username?.isNotEmpty ?? false) 'username': Appender.username  ?? '',
+          if (Appender.storeCode?.isNotEmpty ?? false) 'storeCode': Appender.storeCode ?? '',
+          if (Appender.storeName?.isNotEmpty ?? false) 'storeName': Appender.storeName ?? '',
+          if (Appender.platform?.isNotEmpty ?? false) 'platform': Appender.platform ?? '',
         }
       };
       final logRecord = LogRecord(
